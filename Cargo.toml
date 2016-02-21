@@ -9,4 +9,4 @@ keywords = ["unix", "tilde", "home", "shell"]
 license = "WTFPL"
 
 [dependencies]
-libc = "*"
+libc = "0.2.7"

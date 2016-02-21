@@ -2,6 +2,11 @@
 name = "tilde-expand"
 version = "0.1.0"
 authors = ["sp3d"]
+description = "perform shell-style tilde expansion of home directories in paths"
+repository = "https://github.com/sp3d/tilde-expand-rs"
+readme = "README"
+keywords = ["unix", "tilde", "home", "shell"]
+license = "WTFPL"
 
 [dependencies]
 libc = "*"

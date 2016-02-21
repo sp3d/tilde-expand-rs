@@ -1,0 +1,7 @@
+[package]
+name = "tilde-expand"
+version = "0.1.0"
+authors = ["sp3d"]
+
+[dependencies]
+libc = "*"

@@ -1,0 +1,4 @@
+/// perform tilde-expansion, replacing an initial ~ or ~username with that username's home directory as determined by getpwnam
+fn tilde_expand(s: &[u8]) -> Vec<u8> { ... }
+
+Released under the WTFPL.

@@ -1,7 +1,8 @@
 [package]
 name = "tilde-expand"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["sp3d"]
+include = ["src/*", "src/**/*", "README", "Cargo.toml"]
 description = "perform shell-style tilde expansion of home directories in paths"
 repository = "https://github.com/sp3d/tilde-expand-rs"
 readme = "README"

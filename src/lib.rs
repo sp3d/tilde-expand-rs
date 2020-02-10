@@ -20,7 +20,7 @@ fn write_user_home<W: std::io::Write>(
     let mut getpw_string_buf = [0; 4096];
     let mut passwd: libc::passwd = unsafe { std::mem::zeroed() };
     let mut passwd_out: *mut libc::passwd = std::ptr::null_mut();
-    let result = if username == &[] {
+    let result = if username.is_empty() {
         let uid = unsafe { libc::getuid() };
         unsafe {
             libc::getpwuid_r(
@@ -56,35 +56,53 @@ fn write_user_home<W: std::io::Write>(
 /// perform tilde-expansion, replacing an initial ~ or ~username with that username's home directory as determined by getpwnam
 pub fn tilde_expand(s: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(s.len());
-    /* if it starts with ~ and has no other tildes, tilde-expand it */
-    match s.first() {
-        Some(&b'~') if s.iter().filter(|&&c| c == b'~').count() == 1 => {
-            let end = s.iter().position(|&c| c == b'/').unwrap_or(s.len());
-            let name = &s[1..end];
-            let _ = write_user_home(&mut out, name);
-            out.extend_from_slice(&s[end..]);
+    /* if it starts with ~ and has no other tildes before /, tilde-expand it */
+    let maybe_name = if s.starts_with(b"~") {
+        let end = s.iter().position(|&c| b'/' == c).unwrap_or_else(|| s.len());
+        let name = &s[1..end];
+        let rest = &s[end..];
+        if name.contains(&b'~') {
+            None
+        } else {
+            Some((name, rest))
         }
-        _ => out.extend_from_slice(s),
+    } else {
+        None
+    };
+    if let Some((name, rest)) = maybe_name {
+        let _ = write_user_home(&mut out, name);
+        out.extend_from_slice(rest);
+    } else {
+        out.extend_from_slice(s)
     }
     out
 }
 
 #[test]
-fn test() {
-    println!(
-        "{}",
-        String::from_utf8_lossy(&*tilde_expand(b"~/user-test"))
-    );
-    println!(
-        "{}",
-        String::from_utf8_lossy(&*tilde_expand(b"~root/root-test"))
-    );
-    println!(
-        "{}",
-        String::from_utf8_lossy(&*tilde_expand(b"noexpand~/test"))
-    );
-    println!(
-        "{}",
-        String::from_utf8_lossy(&*tilde_expand(b"~~/noexpand-test"))
-    );
+fn test_output_equals_bash() {
+    use std::process::Command;
+    fn bash(path: &[u8]) -> Vec<u8> {
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n {}", String::from_utf8_lossy(path)))
+            .output()
+            .expect("failed to execute process")
+            .stdout
+    }
+    fn check_output_equals(path: &[u8]) {
+        let internal = tilde_expand(path);
+        let reference = bash(path);
+        assert_eq!(
+            internal,
+            reference,
+            "'{}' differs from expected '{}'",
+            String::from_utf8_lossy(&internal),
+            String::from_utf8_lossy(&reference)
+        );
+    }
+    check_output_equals(b"~/user-test");
+    check_output_equals(b"~root/root-test");
+    check_output_equals(b"~root/root~test");
+    check_output_equals(b"noexpand~/test");
+    check_output_equals(b"~~/noexpand-test");
 }
